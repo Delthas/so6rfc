@@ -1,0 +1,171 @@
+<document author="delthas"
+	title="Protocole pour lier IRDille et Skype : SkyDille 1" status="Protocole Standard"
+	id="1">
+	<context>
+		<txt>
+			Une partie de la communauté Saucisse Royale utilise IRDille,
+			tandis
+			qu'une autre préfère communiquer via un groupe de chat Skype.
+			Il convient de relier ces deux médium de communication par le biais
+			d'un
+			bot IRDille/Skype.
+			La communication entre Skype et le bot étant
+			déjà assurée, il serait
+			intéressant d'intégrer directement le bot au
+			sein
+			du serveur IRDille
+			afin de simuler la présence des utilisateurs,
+			plutôt que de faire un
+			simple bot traditionnel type « Bot IRC ».
+			Le bot
+			IRDille/Skype permet de
+			connaître les utilisateurs connectés et
+			appartenant au groupe de chat
+			Skype,
+			de recevoir des messages, et d'en
+			envoyer. Le protocole va
+			traduire ces différentes possibilités.
+		</txt>
+	</context>
+	<part name="Rappels de notation">
+		<ul>
+			<li>X + Y signifie X puis Y accolés (sans information entre les
+				deux).
+			</li>
+			<li>uintX signifie entier non signé codé sur X bits.</li>
+			<li>utf8 signifie chaîne de caractères encodée avec l'encodage UTF-8,
+				précédee de sa longueur représentée par un uint16 : uint16+chaîne.
+			</li>
+			<li>l{X,Y} signifie liste de valeurs de type Y, dont la longueur est
+				indiquée par une valeur de type X : X + Y + Y + Y + ... + Y.
+			</li>
+			<li>S signifie serveur, C signifie client, dans une situation faisant
+				intervenir un serveur et un client.
+			</li>
+		</ul>
+	</part>
+	<part name="Protocole SkyDille 1">
+		<part name="Généralités">
+			<txt>
+				Toutes les communications se feront par un stream TCP chiffré
+				par
+				TLS, où Saucisse Royale jouera le role de serveur du stream, et
+				le
+				bot IRDille/Skype jouera le role du client. Le certificat TLS
+				utilisé pour le stream DOIT être celui utilisé pour le site et
+				IRDille. La communication sera divisée en unités de sens appelées
+				« messages », composées d'un en-tête, et d'un corps. Toute donnée
+				envoyée DOIT appartenir à un message. L'en-tête est composé d'un
+				unique octet codant un uint8 indiquant le type de message. Le corps
+				du message dépend du type du message.
+			</txt>
+		</part>
+		<part name="Types de messages">
+			<table name="Table des types de messages">
+				<header a="Type" b="En-tête" c="Corps" d="S/C ?" />
+				<row a="Saluer" b="0" c="utf8 pseudo + utf8 passe" d="C" />
+				<row a="Quitter" b="1" c="utf8 raison" d="S/C" />
+				<row a="Message" b="2" c="utf8 envoyeur + utf8 message" d="S/C" />
+				<row a="PrivMessage" b="3"
+					c="utf8 envoyeur + utf8 message|+ utf8 destinataire" d="S/C" />
+				<row a="Dutilisateurs" b="4" c="Aucun" d="S/C" />
+				<row a="Utilisateurs" b="5" c="l{uint16,utf8} utilisateurs" d="S/C" />
+				<row a="Déconnexion" b="6" c="utf8 utilisateur" d="S/C" />
+				<row a="Connexion" b="7" c="utf8 utilisateur" d="S/C" />
+				<row a="Ping" b="8" c="Aucun" d="S/C" />
+				<row a="Pong" b="9" c="Aucun" d="S/C" />
+				<row a="CNom" b="10" c="utf8 ancien + utf8 nouveau" d="S/C" />
+			</table>
+			<ul>
+				<li>Saluer : Le client est connecté et prêt. Il indique par pseudo
+					et
+					passe les identifiant et mot de passe propres au compte associé a
+					ce client SkyDille.
+				</li>
+				<li>Quitter : L'émetteur demande la fermeture de la connexion, en
+					indiquant la raison de la fermeture par raison. À la réception de
+					ce message, fermer le stream et n'envoyer aucun message.
+				</li>
+				<li>Message : L'émetteur envoie l'envoyeur du message (son *pseudo*
+					pour Skype, son *nickname* pour IRDille), puis le message qu'il a
+					envoyé, en format « plaintext », i.e. sans aucun formattage, ni
+					aucune
+					balise. Il s'agit d'un message à envoyer sur le groupe de
+					chat.
+				</li>
+				<li>PrivMessage : L'émetteur envoie l'envoyeur du message, puis le
+					message qu'il a envoyé, en format "plaintext", i.e. sans aucun
+					formattage, ni aucune balise, puis le destinataire. Il s'agit d'un
+					message privé.
+				</li>
+				<li>Dutilisateurs : L'émetteur demande au destinataire de lui
+					envoyer
+					un message Utilisateurs.
+				</li>
+				<li>Utilisateurs : L'émetteur envoie la liste des utilisateurs
+					connectés sur son service, identifiés de la même maniere que pour
+					Message.
+				</li>
+				<li>Déconnexion : L'émetteur indique qu'un utilisateur sur son
+					service
+					s'est déconnecté, en l'identifiant comme pour Message.
+				</li>
+				<li>Connexion : L'émetteur indique qu'un utilisateur sur son service
+					s'est connecté, en l'identifiant comme pour Message.
+				</li>
+				<li>Ping : L'émetteur demande au destinataire de lui envoyer un
+					message
+					Pong afin de s'assurer qu'il est encore là.
+				</li>
+				<li>Pong : L'émetteur indique au destinataire qu'il est encore là.
+				</li>
+				<li>CNom : L'émetteur indique au destinataire qu'un utilisateur de
+					son
+					service a changé de nom (son *pseudo* pour Skype, son *nickname*
+					pour IRDille).
+				</li>
+			</ul>
+		</part>
+		<part name="Exemple d'echange">
+			<ul compact="true">
+				<li>(Le client se connecte au serveur)</li>
+				<li>(Établissement du stream TCP)</li>
+				<li>C : Saluer</li>
+				<li>C : Demande utilisateurs</li>
+				<li>S : Utilisateurs</li>
+				<li>S : Dutilisateurs</li>
+				<li>C : Utilisateurs</li>
+				<li>(Un message est envoyé sur Skype)</li>
+				<li>C : Message</li>
+				<li>(Un message est envoyé sur IRDille)</li>
+				<li>S : Message</li>
+				<li>(...)</li>
+				<li>(Un utilisateur se déconnecte de IRDille)</li>
+				<li>S : Déconnexion</li>
+				<li>(...)</li>
+				<li>(Le serveur doit etre fermé pour maintenance)</li>
+				<li>S : Quitter</li>
+				<li>(Le client ferme le stream TCP)</li>
+				<li>(Fermeture du stream TCP)</li>
+			</ul>
+		</part>
+	</part>
+	<part name="Recommandations">
+		<ul>
+			<li>Le port choisi pour le stream TCP DEVRAIT être le port 6698.</li>
+			<li>Le serveur IRDille DEVRAIT simuler la presence des utilisateurs
+				de
+				Skype comme des utilisateurs normaux d'IRDille grâce aux
+				informations fournies par le bot, et envoyer des messages par le
+				biais de ces utilisateurs.
+			</li>
+			<li>Le bot DEVRAIT pouvoir permettre d'afficher la liste des
+				utilisateurs présents sur IRDille, sur Skype, par une commande
+				simple telle que ?co.
+			</li>
+			<li>Le serveur et le bot ne DEVRAIENT PAS fermer le stream TCP sans
+				envoyer de message Quitter avant.
+			</li>
+		</ul>
+	</part>
+</document>
