@@ -97,6 +97,7 @@ public class Generator {
               String text = reader.getElementText();
               text = patternTextRemoveNewlines.matcher(text).replaceAll(" ").trim();
               appendText(output, text, depth, false, false);
+              output.append('\n');
               break;
             case "tbl":
             case "ul":

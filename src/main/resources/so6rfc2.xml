@@ -1,7 +1,151 @@
 <document author="delthas"
-	title="Protocole de compression de données à la volée : ZMD5" status="Protocole Ironique"
+	title="Protocole pour communiquer l'état de Sava : SAVAP" status="Protocole Standard"
 	id="2">
 	<context>
-		<txt></txt>
+		<txt>
+			Dans la société occidentale moderne, le bonheur individuel
+			constitue l'unique objectif
+			de ses citoyens. Il convient donc
+			d'établir un protocole pour communiquer efficacment le
+			niveau de
+			bonheur d'une entité quelconque. De manière plus générale, on
+			cherchera à
+			communiquer le niveau de Sava, qui est une caractéristique
+			profonde incluant entre autres
+			le bonheur. Le niveau de Sava permet de
+			fournir un indicateur simple et précis, et peut
+			être utilisé par des
+			groupes, administrateurs, ou gouvernements quelconques afin d'adapter
+			ou améliorer
+			leurs services. Le niveau de Sava peut être échelonné sur
+			une échelle de Sava afin de
+			mieux représenter et harmoniser
+			différentes valeurs de Sava obtenues auprès de différentes
+			entités. Le
+			protocole va traduire ces différentes possibilités.
+		</txt>
 	</context>
+
+	<part name="Rappels de notation">
+		<ul>
+			<li>uintX signifie entier non signé codé sur X bits.</li>
+			<li>S signifie serveur, C signifie client, dans une situation faisant
+				intervenir un serveur et un client.
+			</li>
+		</ul>
+	</part>
+
+	<part name="Protocole SAVAP">
+		<part name="Généralités">
+			<txt>
+				Le protocole SAVAP est un protocole de la couche applicative du
+				Modèle
+				OSI,
+				faisant abstraction des couches inférieures sous-tendant
+				l'échange de
+				données,
+				c'est-à-dire qu'il peut notamment être soumis à
+				une compression à la volée ou
+				à du chiffrement.
+			</txt>
+			<txt>
+				Le protocole SAVAP consiste en l'envoi de uint8 entre une entité
+				qui
+				va réceptionner
+				ou demander l'état de Sava, dénommée ci-après
+				Serveur, et une entité
+				qui va envoyer
+				son état de Sava, dénommée
+				ci-après Client. Chaque uint8 correspond à
+				un message
+				entier.
+			</txt>
+		</part>
+		<part name="Types de messages">
+			<table name="Table des types de messages">
+				<header a="Type" b="Valeur" c="S/C ?" />
+				<row a="Saluer" b="128" c="S/C" />
+				<row a="Quitter" b="129" c="S/C" />
+				<row a="Demande" b="130" c="S" />
+				<row a="Ping" b="131" c="S/C" />
+				<row a="Pong" b="132" c="S/C" />
+				<row a="Sava" b="0..10" c="C" />
+				<row a="SavaInconnu" b="133" c="C" />
+			</table>
+			<ul>
+				<li>Saluer : L'émetteur indique au destinataire qu'il est en ligne.
+					Ce message DOIT être
+					envoyé lorsque l'émetteur se connecte au
+					serveur, ou entame son échange
+					avec celui-ci, et
+					uniquement à ce
+					moment là.
+				</li>
+				<li>Quitter : L'émetteur indique au destinataire qu'il souhaite
+					arrêter l'échange avec le
+					destinataire. Il DOIT ne plus envoyer
+					aucun paquet à partir de ce moment, et
+					ignorer les
+					paquets éventuels
+					qui lui arriveraient après l'envoi de ce message. Le
+					destinataire
+					DOIT arrêter
+					d'envoyer des messages après réception de ce message,
+					et PEUT terminer la
+					session, pourvu que
+					cela fasse sens au vu des
+					couches inférieures supportant ce protocole.
+				</li>
+				<li>Demande : Le serveur demande au client de lui envoyer son état
+					de Sava. Lorsque le client
+					reçoit ce message, il DEVRAIT répondre
+					grâce à un message Sava, s'il est en mesure
+					de communiquer son état
+					de Sava, ou par un message SavaInconnu dans le cas contraire.
+				</li>
+				<li>Ping : L'émetteur demande au destinataire de lui assurer qu'il
+					est encore là ;
+					le destinataire du message DEVRAIT répondre par un
+					message Pong dans
+					le cas où il est encore là
+					et souhaite poursuivre
+					la communication.
+				</li>
+				<li>Pong : L'émetteur indique au destinataire qu'il est encore là.
+				</li>
+				<li>Sava : L'émetteur indique au destinataire son état de Sava,
+					grâce à un uint8 compris entre 0 et 10
+					inclus. Voir la partie
+					"Échelle de Sava" ci dessous pour savoir quel
+					nombre envoyer. Ce
+					nombre DOIT être
+					celui de l'état de Sava.
+				</li>
+				<li>SavaInconnu : L'émetteur indique au destinataire que son état de
+					Sava est inconnu ou qu'il ne souhaite pas
+					communiquer son état de
+					Sava.
+				</li>
+			</ul>
+		</part>
+	</part>
+	<part name="Échelle de Sava">
+		<txt>L'échelle de Sava permet d'associer un nombre à un état de Sava,
+			compris entre 0 et 10.
+		</txt>
+		<table name="Échelle de Sava">
+			<header a="Nombre" b="Description" />
+			<row a="0" b="savapa" />
+			<row a="1" b="java" />
+			<row a="2" b="SAVVVVVA [ton grave]" />
+			<row a="3" b="sava sava [ton grave]" />
+			<row a="4" b="sava sava [ton médian]" />
+			<row a="5" b="sava" />
+			<row a="6" b="sava sava [ton aigu]" />
+			<row a="7" b="javasava" />
+			<row a="8" b="SAVA [ton rapide et fort]" />
+			<row a="9" b="SAVVVVVA [ton aigu]" />
+			<row a="10" b="SAVAULTIME" />
+		</table>
+	</part>
 </document>
