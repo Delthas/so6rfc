@@ -28,7 +28,12 @@ import javax.xml.stream.events.XMLEvent;
 
 public class Generator {
 
-  private static final Pattern patternTextRemoveNewlines = Pattern.compile("\\R\\h+");
+  private static final Pattern patternTextRemoveNewlines = Pattern.compile("\\R[ \\t]+");
+  private static final Pattern patternBeforeThinUnbreakableSpace = Pattern.compile("\\h?([\\;\\?\\!])");
+  private static final Pattern patternBeforeUnbreakableSpace = Pattern.compile("\\h?([\\:\\»])");
+  private static final Pattern patternAfterUnbreakableSpace = Pattern.compile("([\\«])\\h?");
+  private static final Pattern patternOpeningGuillemet = Pattern.compile("\"(\\S)");
+  private static final Pattern patternClosingGuillemet = Pattern.compile("(\\S)\"");
   private static final int LINE_WIDTH = 80;
   private static final String TEAM_NAME = "Saucisse Royale";
   private static final String ID_PREFIX = "SO6RFC";
@@ -41,13 +46,14 @@ public class Generator {
   private StringBuilder summary = new StringBuilder();
   private int depth;
   private int summarySavePos = -1;
+
   {
     parts.addLast(0);
     summary.append("Table des matières").append('\n').append('\n');
   }
 
   public static void main(String[] args) throws Exception {
-    new Generator(Paths.get("src/main/resources/input.xml")).start();
+    new Generator(Paths.get("src/main/resources/so6rfc3.xml")).start();
   }
 
   public Generator(Path input) {
@@ -94,7 +100,7 @@ public class Generator {
               depth += INDENT_SPACES;
               break;
             case "txt":
-              String text = reader.getElementText();
+              String text = clean(reader.getElementText());
               text = patternTextRemoveNewlines.matcher(text).replaceAll(" ").trim();
               appendText(output, text, depth, false, false);
               output.append('\n');
@@ -119,7 +125,7 @@ public class Generator {
                 if (!newEvent.isStartElement() || !newEvent.asStartElement().getName().getLocalPart().equalsIgnoreCase("li")) {
                   throw new IllegalArgumentException("Unknown tag in ul (only li is ok)");
                 }
-                String line = reader.getElementText();
+                String line = clean(reader.getElementText());
                 line = patternTextRemoveNewlines.matcher(line).replaceAll(" ").trim();
                 reader.nextEvent();
                 appendText(output, LIST_ITEM_PREFIX + line, depth, false, true);
@@ -318,12 +324,22 @@ public class Generator {
     System.out.println(output.toString());
   }
 
+  private static final String clean(String string) {
+    String result = string;
+    result = patternClosingGuillemet.matcher(result).replaceAll("$1\u00A0»");
+    result = patternOpeningGuillemet.matcher(result).replaceAll("«\u00A0$1");
+    result = patternBeforeThinUnbreakableSpace.matcher(result).replaceAll("\u202F$1");
+    result = patternBeforeUnbreakableSpace.matcher(result).replaceAll("\u00A0$1");
+    result = patternAfterUnbreakableSpace.matcher(result).replaceAll("$1\u00A0");
+    return result;
+  }
+
   private static final String getAttribute(StartElement start, String key) {
     Attribute attribute = start.getAttributeByName(new QName(key));
     if (attribute == null) {
       return null;
     }
-    return attribute.getValue();
+    return clean(attribute.getValue());
   }
 
   private static void appendText(StringBuilder sb, CharSequence text, int depth, boolean centered, boolean depthOnNewLine) {
@@ -336,7 +352,7 @@ public class Generator {
         return;
       }
       int end;
-      for (end = LINE_WIDTH - depth + start; end >= start && text.charAt(end) != ' '; end--) {
+      for (end = LINE_WIDTH - depth + start - (!first && depthOnNewLine ? INDENT_SPACES : 0); end >= start && text.charAt(end) != ' '; end--) {
       }
       if (start >= end) {
         throw new IllegalArgumentException("Row is too long");

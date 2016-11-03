@@ -137,14 +137,14 @@
 			<header a="Nombre" b="Description" />
 			<row a="0" b="savapa" />
 			<row a="1" b="java" />
-			<row a="2" b="SAVVVVVA [ton grave]" />
-			<row a="3" b="sava sava [ton grave]" />
-			<row a="4" b="sava sava [ton médian]" />
+			<row a="2" b="savapatro" />
+			<row a="3" b="patrosava" />
+			<row a="4" b="SAVVVVVA" />
 			<row a="5" b="sava" />
-			<row a="6" b="sava sava [ton aigu]" />
+			<row a="6" b="savapamal" />
 			<row a="7" b="javasava" />
-			<row a="8" b="SAVA [ton rapide et fort]" />
-			<row a="9" b="SAVVVVVA [ton aigu]" />
+			<row a="8" b="SAVA" />
+			<row a="9" b="pamalsava" />
 			<row a="10" b="SAVAULTIME" />
 		</table>
 	</part>
