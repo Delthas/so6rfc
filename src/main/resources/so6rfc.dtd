@@ -1,0 +1,27 @@
+<!ELEMENT document (context?, part*)>
+<!ELEMENT context (txt*, n*, ul*, table*)>
+<!ELEMENT part (txt*, n*, ul*, table*, part*)>
+<!ELEMENT ul (li+)>
+<!ELEMENT txt (#PCDATA)>
+<!ELEMENT li (#PCDATA)>
+<!ELEMENT n EMPTY>
+<!ELEMENT table (header, row+)>
+<!ELEMENT header EMPTY>
+<!ELEMENT row EMPTY>
+
+<!ATTLIST document
+author CDATA #REQUIRED
+title CDATA #REQUIRED
+status (Protocole standard) #REQUIRED
+id NUMBER #REQUIRED>
+<!ATTLIST part
+name CDATA #REQUIRED
+compact CDATA #IMPLIED>
+<!ATTLIST table
+name CDATA #REQUIRED>
+<!ATTLIST ul
+compact CDATA #IMPLIED>
+<!ATTLIST context>
+<!ATTLIST txt>
+<!ATTLIST n>
+<!ATTLIST li>
