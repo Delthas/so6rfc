@@ -1,6 +1,6 @@
 <document author="emersion"
-  title="Protocole pour faire taire les insolents : TG"
-  status="Protocole Standard" id="3">
+          title="Protocole pour faire taire les insolents : TG"
+          status="Protocole Standard" id="3">
   <context>
     <txt>
       Dans la période du 18 octobre 2016 au 2 novembre 2016, un certain utilisateur
@@ -29,31 +29,22 @@
   <part name="Protocole TG">
     <part name="Généralités">
       <txt>
-        Le protocole TG est AgNOSTIQUE Du PrOCOTOLE (AgDuPr), c'est-à-dire
-        qu'il fait abstraction des couches inférieures sous-tendant à l'échange
+        Le protocole TG est AgNOSTIQUE Du PrOTOCOLE (AgDuPr), c'est-à-dire
+        qu'il fait abstraction des couches inférieures sous-tendant l'échange
         de données, sous réserve de certaines conditions.
       </txt>
       <txt>
-        Une première condition est l'existance et l'utilisation d'un unique
-        protocole sous-jacent : TG ne peut pas être utilisé sur un protocole ne
-        vérifiant pas une contrainte d'unicité. Ici, unicité est interprété au
-        sens non large : il est tout à fait possible pour deux utilisateurs de
-        deux protocoles sous-tendant à l'échange de données distincts ou non
-        d'utiliser TG simultanément sur chacun des protocoles. Heureusement,
-        jusqu'à aujourd'hui tous les protocoles connus répondent à cette
-        contrainte.
-      </txt>
-      <txt>
-        Une deuxième condition est l'existance de la notion de message pour ce
-        protocole. Nous définissons un message comme un ensemble ordonné de
+        Le protocole sous-tendant l'échange de données doit comprendre la notion
+        de "message". Nous définissons un "message" comme un ensemble ordonné de
         signaux transmis entre un émetteur et un récepteur par un média.
       </txt>
       <txt>
-        Si ces deux contraintes sont remplies par le protocole, alors on dit que
+        Si cette contrainte est vérifiée par le protocole sous-jacent, alors on dit que
         ce protocole supporte TG. On utilisera le terme de posteur pour désigner
         l'initiateur de l'envoi d'un message. On nommera alors destinataires
         l'ensemble des utilisateurs qui recevront un message envoyé via le biais
-        du protocole sous-tendant à l'échange de données.
+        du protocole sous-tendant à l'échange de données, et destinataire un élément
+        de cet ensemble.
       </txt>
       <txt>
         TG offre deux mécanismes utiles à la gestion des abus : l'un permet de
@@ -61,10 +52,19 @@
         l'autre est utile à l'annulation de cette demande. On dit que TG
         s'applique à un destinataire lorsque les demandes s'adressent à ce
         destinataire. Ce destinataire auquel TG s'applique est appelé ci-après
-        l'appliqué. Notons que la définition de la notion de message indésirable
-        est laissée au posteur. Ainsi, tout message potentiellement émis par un
-        appliqué DOIT être considéré comme indésirable par ce dernier. On
-        pourra recontrer dans la suite de ce document "MI" pour message indésirable.
+        l'appliqué. On pourra recontrer dans la suite de ce document "MI" pour message
+        indésirable. La définition de la notion de message indésirable, et la classification
+        des messages entre messages indésirables et messages non indésirables
+        sont subjectives aux appliqués et aux posteurs, aussi ce document ne présentera
+        pas de critère précis et obligatoire concernant ces aspects. Cependant, la définition
+        (implicite ou explicite) de la notion de message indésirable DOIT être la même pour
+        toutes les demandes effectuées par des posteurs différents, à appliqué fixé,
+        autrement dit les états TG d'un appliqué (voir ci-dessous) ne DOIVENT PAS
+        dépendre de l'initié. Une telle définition POURRAIT être "les messages indésirables
+        sont excatement les messages spontanés ne correspondant pas à une sollicitation
+        explicite" où la signification exacte de "sollicitation explicite" est à définir. Dans
+        tous les cas, la définition choisie DEVRAIT relever du bon sens, et ne pas être
+        intentionnellement choisie de sorte à annuler l'effet du TG.
       </txt>
       <txt>
         Dans un cadre où il n'y a aucun destinataire, TG DEVRAIT s'appliquer à
@@ -76,7 +76,7 @@
       </txt>
       <txt>
         Dans le cas où un destinataire supporte le protocole TG, il est dit
-        TG-compliant. Il PEUT alors annoncer ce support, et si le protocole
+        TG-compliment. Il PEUT alors annoncer ce support, et si le protocole
         sous-jacent le supporte, DEVRAIT ajouter TG à la liste de ses capacités.
       </txt>
     </part>
@@ -95,9 +95,9 @@
       <txt>
         La table ci-dessous présente la liste des messages TG qui peuvent être
         envoyés. Lors d'une implémentation de ce protocole, il est conseillé
-        de placer les valeurs devant être envoyées (ci-après le « contenu du
-        message ») dans des constantes afin de ne pas avoir besoin de les
-        durcoder dans un programme informatisé.
+        de placer les valeurs devant être envoyées (ci-après le "contenu du
+        message") dans des constantes afin de ne pas avoir besoin de les
+        encoder "en dur" dans un programme informatisé.
       </txt>
       <table name="Table des messages">
         <header a="Nom du message" b="Effet" c="Contenu du message"/>
@@ -112,33 +112,32 @@
       <ul>
         <li>
           TG : le posteur indique que l'appliqué DOIT cesser d'envoyer des
-          messages indésirables et rentrer dans l'état TG. Néanmoins, avant cela
-          il PEUT envoyer un dernier MI dit « commémoratif » pour signifier
+          messages indésirables et rentrer dans l'état TG. Dans le cas où
+          l'appliqué est déjà dans l'état TG, l'appliqué DOIT ne rien faire. Dans le cas
+          contraire, il PEUT avant de passer dans l'état TG envoyer un dernier MI (dit
+          « commémoratif ») pour signifier
           au posteur que le TG a été pris en compte avec succès. Ce message ne
           DOIT pas excéder 587 octets, mais PEUT être plus court (un protocole
           sous-jacent peut également limiter la taille des messages envoyés par
           un posteur). Après ce message, plus aucun MI ne peut être envoyé
-          jusqu'à l'arrêt de l'état TG.
+          tant que l'état de l'appliqué est l'état TG.
         </li>
         <li>
           TGNON : le posteur indique que l'appliqué PEUT cesser de ne pas
           envoyer des messages indésirables et DOIT passer dans l'état TGNON.
-          Néanmoins, avant cela il DOIT envoyer un message dit « enchanté » pour
-          signifier au posteur que le TGNON a bien été pris en compte avec
-          succès. Ce message PEUT excéder 587 octets, mais DOIT contenir au moins
+          Dans le cas où l'appliqué est déjà dans l'état TGNON, l'appliqué est libre
+          de réagir comme il le souhaite. Dans le cas contraire, avant de passer dans
+          l'état TGNON, il DOIT envoyer un message (dit « enchanté ») pour
+          signifier au posteur que le TGNON a été pris en compte avec
+          succès. Ce message PEUT excéder 587 octets, et DOIT contenir au moins
           un caractère alphanumérique. Après ce message, de nouveaux messages
-          indésirables peuvent être envoyés jusqu'à l'arrêt de l'état TGNON.
+          indésirables peuvent être envoyés tant que l'état de l'appliqué est l'état TGNON.
         </li>
       </ul>
       <txt>
-        Si une commande demande le passage dans un état déjà atteint par
-        l'appliqué, ce dernier peut réagir comme bon lui semble dans le
-        respect des règles de son état.
-      </txt>
-      <txt>
         Note : Dans le cas de l'utilisation d'un média ne permettant pas
-        facilement un décompte d'octet, il est à la charge de
-        l'implémenteur de réaliser la transcription en une chaîne de caractères
+        facilement un décompte d'octets, il est à la charge de
+        l'envoyeur du message de réaliser la transcription en une chaîne de caractères
         des messages. Le décompte d'octets DOIT se faire sur des chaînes de
         caractères encodées avec le jeu de caractères Windows 1252.
       </txt>
@@ -150,3 +149,4 @@
     </txt>
   </part>
 </document>
+
