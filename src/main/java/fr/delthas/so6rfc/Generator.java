@@ -1,21 +1,5 @@
 package fr.delthas.so6rfc;
 
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.regex.Pattern;
-import java.util.stream.IntStream;
-
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
@@ -25,6 +9,17 @@ import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 public class Generator {
 
@@ -52,12 +47,82 @@ public class Generator {
     summary.append("Table des matières").append('\n').append('\n');
   }
 
-  public static void main(String[] args) throws Exception {
-    new Generator(Paths.get("src/main/resources/so6rfc3.xml")).start();
+  private Generator(Path input) {
+    this.input = input;
   }
 
-  public Generator(Path input) {
-    this.input = input;
+  public static void main(String[] args) throws Exception {
+    new Generator(Paths.get("src/main/resources/" + args[0])).start();
+  }
+
+  private static String clean(String string) {
+    String result = string;
+    result = patternClosingGuillemet.matcher(result).replaceAll("$1\u00A0»");
+    result = patternOpeningGuillemet.matcher(result).replaceAll("«\u00A0$1");
+    result = patternBeforeThinUnbreakableSpace.matcher(result).replaceAll("\u202F$1");
+    result = patternBeforeUnbreakableSpace.matcher(result).replaceAll("\u00A0$1");
+    result = patternAfterUnbreakableSpace.matcher(result).replaceAll("$1\u00A0");
+    return result;
+  }
+
+  private static String getAttribute(StartElement start, String key) {
+    Attribute attribute = start.getAttributeByName(new QName(key));
+    if (attribute == null) {
+      return null;
+    }
+    return clean(attribute.getValue());
+  }
+
+  private static void appendText(StringBuilder sb, CharSequence text, int depth, boolean centered, boolean depthOnNewLine) {
+    boolean first = true;
+    for (int start = 0; start < text.length(); ) {
+      if (text.length() - start <= LINE_WIDTH - depth) {
+        appendNTimes(sb, ' ', (centered ? (LINE_WIDTH - depth - text.length() + start) / 2 : depth) + (!first && depthOnNewLine ? INDENT_SPACES : 0));
+        sb.append(text, start, text.length());
+        sb.append('\n');
+        return;
+      }
+      int end;
+      for (end = LINE_WIDTH - depth + start - (!first && depthOnNewLine ? INDENT_SPACES : 0); end >= start && text.charAt(end) != ' '; end--) {
+      }
+      if (start >= end) {
+        throw new IllegalArgumentException("Row is too long");
+      }
+      appendNTimes(sb, ' ', centered ? (LINE_WIDTH - depth - end + start) / 2 : depth + (!first && depthOnNewLine ? INDENT_SPACES : 0));
+      sb.append(text, start, end);
+      sb.append('\n');
+      start = end + 1;
+      first = false;
+    }
+  }
+
+  private static StringBuilder appendNTimes(StringBuilder sb, char c, int n) {
+    for (int i = 0; i < n; i++) {
+      sb.append(c);
+    }
+    return sb;
+  }
+
+  private static StringBuilder addWhitespace(StringBuilder sb, int minimumWhitespace) {
+    if (sb.charAt(sb.length() - 1) != '\n') {
+      throw new IllegalArgumentException("Whitespace requested with col!=0");
+    }
+    int count;
+    for (count = 0; count <= sb.length() - 1 && sb.charAt(sb.length() - 1 - count) == '\n'; count++) {
+    }
+    count--;
+    if (minimumWhitespace > count) {
+      appendNTimes(sb, '\n', minimumWhitespace - count);
+    }
+    return sb;
+  }
+
+  private static XMLEvent nextEvent(XMLEventReader reader) throws XMLStreamException {
+    XMLEvent event;
+    do {
+      event = reader.nextEvent();
+    } while (event.isCharacters() && event.asCharacters().isWhiteSpace());
+    return event;
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
@@ -322,76 +387,6 @@ public class Generator {
     summary.append('\n').append('\n');
     output.insert(summarySavePos, summary);
     System.out.println(output.toString());
-  }
-
-  private static final String clean(String string) {
-    String result = string;
-    result = patternClosingGuillemet.matcher(result).replaceAll("$1\u00A0»");
-    result = patternOpeningGuillemet.matcher(result).replaceAll("«\u00A0$1");
-    result = patternBeforeThinUnbreakableSpace.matcher(result).replaceAll("\u202F$1");
-    result = patternBeforeUnbreakableSpace.matcher(result).replaceAll("\u00A0$1");
-    result = patternAfterUnbreakableSpace.matcher(result).replaceAll("$1\u00A0");
-    return result;
-  }
-
-  private static final String getAttribute(StartElement start, String key) {
-    Attribute attribute = start.getAttributeByName(new QName(key));
-    if (attribute == null) {
-      return null;
-    }
-    return clean(attribute.getValue());
-  }
-
-  private static void appendText(StringBuilder sb, CharSequence text, int depth, boolean centered, boolean depthOnNewLine) {
-    boolean first = true;
-    for (int start = 0; start < text.length();) {
-      if (text.length() - start <= LINE_WIDTH - depth) {
-        appendNTimes(sb, ' ', (centered ? (LINE_WIDTH - depth - text.length() + start) / 2 : depth) + (!first && depthOnNewLine ? INDENT_SPACES : 0));
-        sb.append(text, start, text.length());
-        sb.append('\n');
-        return;
-      }
-      int end;
-      for (end = LINE_WIDTH - depth + start - (!first && depthOnNewLine ? INDENT_SPACES : 0); end >= start && text.charAt(end) != ' '; end--) {
-      }
-      if (start >= end) {
-        throw new IllegalArgumentException("Row is too long");
-      }
-      appendNTimes(sb, ' ', centered ? (LINE_WIDTH - depth - end + start) / 2 : depth + (!first && depthOnNewLine ? INDENT_SPACES : 0));
-      sb.append(text, start, end);
-      sb.append('\n');
-      start = end + 1;
-      first = false;
-    }
-  }
-
-  private static final StringBuilder appendNTimes(StringBuilder sb, char c, int n) {
-    for (int i = 0; i < n; i++) {
-      sb.append(c);
-    }
-    return sb;
-  }
-
-  private static final StringBuilder addWhitespace(StringBuilder sb, int minimumWhitespace) {
-    if (sb.charAt(sb.length() - 1) != '\n') {
-      throw new IllegalArgumentException("Whitespace requested with col!=0");
-    }
-    int count;
-    for (count = 0; count <= sb.length() - 1 && sb.charAt(sb.length() - 1 - count) == '\n'; count++) {
-    }
-    count--;
-    if (minimumWhitespace > count) {
-      appendNTimes(sb, '\n', minimumWhitespace - count);
-    }
-    return sb;
-  }
-
-  private static final XMLEvent nextEvent(XMLEventReader reader) throws XMLStreamException {
-    XMLEvent event;
-    do {
-      event = reader.nextEvent();
-    } while (event.isCharacters() && event.asCharacters().isWhiteSpace());
-    return event;
   }
 
 }
