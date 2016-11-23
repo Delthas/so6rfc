@@ -71,7 +71,7 @@
         la personne dénomée delthas mais PEUT n'avoir aucun effet. Dans le cadre
         où il y a exactement un destinataire, TG DOIT s'appliquer à cet unique
         destinataire, mais PEUT également s'appliquer à la personne dénomée
-        delthas. Dans le cadre où il y a plusieurs destinataires (au sens strict),
+        delthas. Dans le cadre où il y a plusieurs destinataires au sens strict,
         TG DOIT s'appliquer au moins à tous les destinataires supportant TG.
       </txt>
       <txt>
