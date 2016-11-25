@@ -237,6 +237,14 @@ public class Generator {
               if (tableName == null) {
                 throw new IllegalArgumentException("No table name set");
               }
+              compactString = getAttribute(start, "compact");
+              if (compactString == null || compactString.equalsIgnoreCase("false")) {
+                compact = false;
+              } else if (compactString.equalsIgnoreCase("true")) {
+                compact = true;
+              } else {
+                throw new IllegalArgumentException("Unknown compact argument");
+              }
               XMLEvent newEvent = nextEvent(reader);
               if (!newEvent.isStartElement() || !newEvent.asStartElement().getName().getLocalPart().equalsIgnoreCase("header")) {
                 throw new IllegalArgumentException("First tag in list should be header");
@@ -316,7 +324,7 @@ public class Generator {
                     }
                   }
                   if (empty) {
-                    if (it.hasNext()) {
+                    if (it.hasNext() && !compact) {
                       appendNTimes(output, ' ', spaces);
                       output.append('|');
                       for (int size : sizes) {

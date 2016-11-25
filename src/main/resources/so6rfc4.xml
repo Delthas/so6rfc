@@ -1,7 +1,224 @@
-<document author="delthas"
-          title="Protocole de compression de données à la volée : ZMD5" status="Protocole Standard"
+<document author="delthas" title="Protocole de compression de données à la volée : ZMD5" status="Protocole Standard"
           id="4">
-    <context>
-        <txt></txt>
-    </context>
+  <context>
+    <txt>
+      La compression des données sera un enjeu majeur de l'informatique pour les décennies à venir. La plupart des
+      services utilisés par les internautes voient leur traffic de données décupler d'année en année. Les technologies
+      de transport de l'information ne suivent cependant pas ce rythme, et, bien qu'aujourd'hui le transport de
+      l'information semble arriver à suivre avec succès l'augmentation de la quantité d'information échangée, il est
+      clair que cela ne saurait perdurer pour les années ou décennies à venir.
+    </txt>
+    <txt>
+      C'est notamment dans cette perspective que Makise Kurisu s'interroge sur la capacité de compresser plusieurs
+      pétaoctets d'information en une simple poignée d'octets (36) avec un facteur de réduction de l'ordre de la
+      quatorzième puissance de dix (100000000000000). Pour le contexte, elle cherchait à effectuer un voyage dans le
+      temps grâce à cette technologie.
+    </txt>
+    <txt>
+      Ainsi, il est clair qu'établir un protocole de compression de données est à la fois essentiel et révolutionnaire.
+      On notera le caractère "à la volée" de ce protocole, dont la justification est claire : le futur ne se vivra qu'en
+      temps réel. Nous présentons dans ce document une implémentation d'un tel protocole.
+    </txt>
+  </context>
+
+  <part name="Rappels de notation">
+    <ul>
+      <li>X + Y signifie X puis Y accolés (sans information entre les deux).
+      </li>
+      <li>uintX signifie entier non signé codé sur X bits.</li>
+      <li>utf8 signifie chaîne de caractères encodée avec l'encodage UTF-8, précédee de sa longueur représentée par un
+        uint16 : uint16+chaîne.
+      </li>
+    </ul>
+  </part>
+
+  <part name="Éxigences d'un protocole de compression de données à la volée">
+    <txt>
+      Un protocole de compression de données à la volée DOIT vérifier plusieurs critères afin d'être considéré comme
+      tel, tant sur le plan technique que sur le plan moral.
+    </txt>
+    <ul>
+      <li>
+        Techniquement, le ratio de compression du protocole doit être excellent, et au moins permettre à Makise Kurisu
+        de l'utiliser pour procéder à des voyages dans le temps. Autrement dit, le protocole DOIT pouvoir compresser des
+        données de moins de dix pétaoctets en des données de moins de trente-six octets (au sens large).
+      </li>
+      <li>
+        Moralement, le ratio de compression DOIT être l'enjeu principal du protocole : le ratio de compression le
+        meilleur est le but recherché.
+      </li>
+      <li>
+        Techniquement, la compression doit pouvoir s'effectuer dans le cadre d'une application en temps réel. On notera
+        notamment qu'en cas d'intervention d'agents venus pour vous assassiner, il faut pouvoir déclencher la
+        compression très rapidement afin de voyager dans le temps avant de vous faire tuer. Concrètement, la compression
+        DEVRAIT pouvoir être effectuée en moins de cinq secondes (modulo d'éventuels effets de "slow motion").
+      </li>
+      <li>
+        Moralement, le protocole DEVRAIT donc privilégier une approche temps réel.
+      </li>
+    </ul>
+  </part>
+
+  <part name="Protocole ZMD5">
+    <part name="Généralités et notations">
+      <txt>
+        Le protocole ZMD5 cherche à répondre à tous ces critères et à proposer une "implémentation" de référence pour la
+        spécification que constitue la première partie de ce document.
+      </txt>
+      <txt>
+        Le protocole ZMD5 est AgNOSTIQUE Du PrOTOCOLE (AgDuPr), c'est-à-dire qu'il fait abstraction des couches
+        inférieures sous-tendant l'échange de données, sous réserve de certaines conditions.
+      </txt>
+      <txt>
+        Le protocole sous-tendant l'échange de données doit comprendre la notion de "message". Nous définissons un
+        "message" comme un ensemble ordonné de signaux transmis entre un émetteur et un récepteur par un média.
+      </txt>
+      <txt>
+        Si cette contrainte est vérifiée par le protocole sous-jacent, alors on dit que ce protocole supporte ZMD5. On
+        utilisera le terme de posteur pour désigner l'initiateur de l'envoi d'un message. On nommera alors destinataires
+        l'ensemble des utilisateurs qui recevront un message envoyé via le biais du protocole sous-tendant à l'échange
+        de données, et destinataire un élément de cet ensemble. On dit que ZMD5 s'applique à un destinataire lorsque les
+        demandes s'adressent à ce destinataire. Ce destinataire auquel ZMD5 s'applique est appelé ci-après l'appliqué.
+      </txt>
+    </part>
+    <part name="Échange de messages">
+      <txt>
+        Un échange de messages du protocole ZMD5 se déroule comme suit.
+      </txt>
+      <ul compact="true">
+        <li>
+          Le posteur initie l'échange de messages du protocole ZMD5.
+        </li>
+        <li>
+          Le posteur envoie exactement un message CC avec pour unique destinataire l'appliqué voulu.
+        </li>
+        <li>
+          Le posteur envoie un nombre entier strictement positif de messages Z avec pour unique destinataire l'appliqué
+          voulu.
+        </li>
+        <li>
+          Le posteur termine l'échange de messages du protocole ZMD5.
+        </li>
+        <li>
+          À tout moment, le posteur ou l'appliqué PEUT envoyer un message PING avec pour destinataire uniquement
+          respactivement l'appliqué ou le posteur, auquel cas le destinataire DOIT répondre par un message PONG, avec
+          pour unique destinataire l'émetteur du message qu'il a reçu.
+        </li>
+        <li>
+          À tout moment, l'appliqué PEUT terminer l'échange de messages du protocole ZMD5, sans ou avec notification.
+        </li>
+      </ul>
+    </part>
+    <part name="Messages">
+      <table name="Table des messages">
+        <header a="Nom du message" b="Contenu du message"/>
+        <row a="CC" b="Aucun"/>
+        <row a="Z" b="utf8 data"/>
+        <row a="PING" b="Aucun"/>
+        <row a="PONG" b="Aucun"/>
+      </table>
+      <txt>
+        La table ci-dessus présente les différents types de messages. Leur effet est détaillé ci-dessous.
+      </txt>
+      <ul>
+        <li>
+          Le message CC a pour signification une notification d'initiation de la connexion. Il est obligatoire.
+        </li>
+        <li>
+          Le message Z constitue le cœur du protocole, la valeur data correspond à la valeur compressée du message que
+          voulait transmettre le posteur (voir partie suivante) (voir partie suivante).
+        </li>
+        <li>
+          Le message PING indique au destinataire que la personne qui l'envoie veut s'assurer que la personne à qui le
+          message est adressé n'a pas terminé l'échange de messages du protocole ZMD5.
+        </li>
+        <li>
+          Le message PONG indique au destinataire que la personne envoyant le message n'a pas terminé l'échange de
+          messages du protocole ZMD5.
+        </li>
+      </ul>
+    </part>
+    <part name="Compression, Décompression">
+      <txt>
+        Lorsqu'un posteur veut envoyer un ensemble de données E à un appliqué, il applique l'algorithme de somme de
+        contrôle MD5 sur E et obtient une valeur H appelée clef. Le posteur réalise ensuite une conversion de H en une
+        chaîne de caractères en encodage UTF-8 en remplaçant naturellement chaque ensemble de 4 bits par un caractère
+        hexadécimal, en utilisant la table "Table" fournie en annexe. Cette chaîne de caractères est appelée "valeur
+        compressée du message que voulait transmettre le posteur (voir partie suivante)".
+      </txt>
+      <txt>
+        Lorsqu'un appliqué veut décompresser une "valeur compressée du message que voulait transmettre le posteur (voir
+        partie suivante)" en un ensemble de données E, il doit d'abord convertir la chaîne de caractères en une clef H
+        en remplaçant chaque caractère par un ensemble de 4 bits, en suivant la table "Table Réciproque" fournie en
+        annexe. Ensuite, il doit créer un variable de travail S, nommée serrure, initialisée au nombre représenté en
+        écriture en base 2 par "0", et calculer l'empreinte de la serrure Ś (abrégée ainsi en raison de l'intiale de la
+        traduction du mot "empreinte" en polonais) obtenue en appliquant l'algorithme de somme de contrôle MD5 sur S. Si
+        les valeurs de Ś et H sont égales, E vaut S. Sinon, on réessaye, en remplaçant la valeur de S par sa valeur
+        logique suivante, tant que Ś et H sont différentes. La suite des valeurs logiques de S sont les valeurs
+        représentées par les écritures en base 2 respectives "0", "1", "10", "11", "100", "101", "110", "111", "1000",
+        "1001", "1010", "1011", "1100", "1101", "1110", "1111", "10000", et ainsi de suite.
+      </txt>
+    </part>
+
+    <part name="Justification du bien-fondé de l'algorithme">
+      <txt>
+        Il est assuré que le protocole ZMD5 vérifie l'hypothèse de ratio de compression. En particulier, les messages Z
+        auront toujours une taille inférieure à 36 octets, puisque les valeurs résultantes de l'algorithme de somme de
+        contrôle MD5 appliqué à tous les objets possibles ont toujours pour longueur 128 bits, que ceux-ci sont
+        convertis en une chaîne de caractères de longueur 32 caractères, soit en fait 32 octets au vu du jeu de
+        caractère pouvant être présent dans une telle chaîne, et l'uint16 précédant les données de la chaîne proprement
+        dite lors de l'envoi de l'utf8 a pour longueur seulement 2 octets, soit un total de 34 octets, inférieur à la
+        limite de 36 octets.
+      </txt>
+      <txt>
+        Il est également clair que l'algorithme de décompression termine, puisque la valeur E choisie par le posteur
+        convient comme valeur de la serrure.
+      </txt>
+    </part>
+  </part>
+  <part name="Considérations concernant la sécurité">
+    <txt>
+      Il n'y a pas de problème de sécurité connu pour ce protocole.
+    </txt>
+  </part>
+  <part name="Annexes">
+    <table name="Table" compact="true">
+      <header a="Représentation en écriture binaire des 4 bits" b="Caractère hexadécimal"/>
+      <row a="0000" b="0"/>
+      <row a="0001" b="1"/>
+      <row a="0010" b="2"/>
+      <row a="0011" b="3"/>
+      <row a="0100" b="4"/>
+      <row a="0101" b="5"/>
+      <row a="0110" b="6"/>
+      <row a="0111" b="7"/>
+      <row a="1000" b="8"/>
+      <row a="1001" b="9"/>
+      <row a="1010" b="a"/>
+      <row a="1011" b="b"/>
+      <row a="1100" b="c"/>
+      <row a="1101" b="d"/>
+      <row a="1110" b="e"/>
+      <row a="1111" b="f"/>
+    </table>
+    <table name="Table Réciproque" compact="true">
+      <header a="Caractère hexadécimal" b="Représentation en écriture binaire des 4 bits"/>
+      <row a="0" b="0000"/>
+      <row a="1" b="0001"/>
+      <row a="2" b="0010"/>
+      <row a="3" b="0011"/>
+      <row a="4" b="0100"/>
+      <row a="5" b="0101"/>
+      <row a="6" b="0110"/>
+      <row a="7" b="0111"/>
+      <row a="8" b="1000"/>
+      <row a="9" b="1001"/>
+      <row a="a" b="1010"/>
+      <row a="b" b="1011"/>
+      <row a="c" b="1100"/>
+      <row a="d" b="1101"/>
+      <row a="e" b="1110"/>
+      <row a="f" b="1111"/>
+    </table>
+  </part>
 </document>
