@@ -51,7 +51,7 @@
         Techniquement, la compression doit pouvoir s'effectuer dans le cadre d'une application en temps réel. On notera
         notamment qu'en cas d'intervention d'agents venus pour vous assassiner, il faut pouvoir déclencher la
         compression très rapidement afin de voyager dans le temps avant de vous faire tuer. Concrètement, la compression
-        DEVRAIT pouvoir être effectuée en moins de cinq secondes (modulo d'éventuels effets de "slow motion").
+        DEVRAIT pouvoir être effectuée en moins de quatre secondes (modulo d'éventuels effets de "slow motion").
       </li>
       <li>
         Moralement, le protocole DEVRAIT donc privilégier une approche temps réel.
