@@ -1,0 +1,537 @@
+<document author="emersion, delthas"
+          title="Protocole de robots IRDille : IRC (IRDille Robot Conversationnel)"
+          status="Protocole Standard"
+          id="5"
+          deprecates="3">
+  <context>
+    <txt>
+      Dans un contexte d'harmonisation et de collaboration inter-robots sur l'IRDille moderne, et suite à un développement récent de pratiques non normalisées de communication inter-robots sur le réseau, il convient d'établir une norme intégrant tous ces développements et servant de support pour les robots actuels et futurs. Cette norme permet d'une part d'améliorer l'expérience utilisateur, qui sera homogénéisée pour tous les robots du réseau, et d'autre part de faciliter l'interaction programmatique entre robots, dans l'optique d'utiliser des robots en tant que bibliothèques de programmation.
+    </txt>
+    <txt>
+      Cette SO6RFC rend obsolète la SO6RFC3, qui établissait primitivement les commandes tg et tgnon. Cette SO6RFC modifie leur comportement de manière non rétro-compatible et ajoute de nombreuses autres spécifications.
+    </txt>
+    <txt>
+      Schématiquement, un robot IRDille supporte un ensemble de commandes, qui correspondent à des fonctions pouvant éventuellement avoir des arguments, qu'il est capable de traiter, puis de renvoyer le résultat. Ces commandes, et leur résultat, sont échangés sur un protocole générique esclave sous-tendant à l'échange de commandes et de leurs réponses, appelé « protocole d'échange de commandes ». Ce protocole est générique, et en ce sens, la partie du protocole IRC (IRDille Robot Conversationnel) concernant les commandes est AgNOSTIQUE Du PrOTOCOLE (AgDuPr) vis-à-vis du protocole d'échange de commandes.
+    </txt>
+    <txt>
+      Les protocoles d'échange de commandes sont définis par une implémentation dudit protocole en termes d'opérations sur le protocole sous-jaçant d'échange de messages, appelé « médium de communication ». Cette SO6RFC définit une normalisation explicite de la réalisation de protocoles d'échanges de commandes pour certains mediums, dont le support de certains est obligatoire pour être conforme.
+    </txt>
+    <txt>
+      Cette SO6RFC définit donc :
+    </txt>
+    <ul>
+      <li>d'une part, un ensemble de commandes standards pouvant être traitées par le robot, dont le support de certaines est obligatoire ;</li>
+      <li>d'autre part, un ensemble de média standards, dont le support de certains est obligatoires.</li>
+    </ul>
+  </context>
+
+  <part name="Rappels de notation">
+    <ul>
+      <li>`\t` est considéré comme le caractère littéral pour la tabulation ;</li>
+      <li>`[xyz]` signifie n'importe quelle chaîne composée exactement d'un des caractères littéraux apparaissant entre les crochets exclus ;</li>
+      <li>`"xyz"` signifie la chaîne de caractère littérale composée de la concaténation des caractères littéraux entre les guillemets, non inclus ;</li>
+      <li>X signifie la chaîne de caractères correspondant au symbole X dans le contexte où X apparaît ;</li>
+      <li>X Y signifie la concaténation des deux chaînes de caractères X et Y ;</li>
+      <li>`X[Y:Z]{expression}` signifie la concaténation, pour X allant de Y inclus à Z exclus, par incréments de 1, de l'expression entre les accolades exclues, dépendant de X, par exemple `X[1:3]{E(X)}` signifie `E(1) E(2)` ;</li>
+      <li>`X*` signifie n'importe quelle chaîne composée d'un nombre de concaténations positif de la chaîne de caractères X ;</li>
+      <li>`X+` signifie n'importe quelle chaîne composée d'un nombre de concaténations strictement positif de la chaîne de caractères X ;</li>
+      <li>`X?` signifie une chaîne composée d'exactement 0 ou 1 occurence de la chaîne de caractères X ;</li>
+      <li>`{X}` signifie exactement la chaîne de caractères X, et sert à parenthéser les expressions ;</li>
+      <li>`URL(X)` signifie la chaîne de caractères X ayant suivi un encodage par pourcentage, tel que décrit dans la RFC 3986, section 2.1.</li>
+    </ul>
+  </part>
+
+  <part name="Média de communication standards">
+    <txt>
+      Un protocole d'échange de commandes dispose de deux opérations élémentaires abstraites : l'envoi de l'invocation d'une commande, et l'envoi d'une réponse pour cette commande. Un médium décrit donc exactement le déroulement de ces deux opérations élémentaires. Chaque médium définit également un schéma d'URL permettant de représenter le robot de manière unique sur ce médium.
+    </txt>
+    <txt>
+      Certains média sont contraints par une taille limitée des messages y circulant. Lorsque l'envoi d'un message sur un médium ne pourrait pas être possible en raison de cette contrainte, le message DOIT être modifié pour permettre son envoi, selon le processus exact décrit ci-après. Notant M le contenu du message initial, tant que `M "[…]"` ne peut être envoyé, enlever de M son dernier caractère (par exemple dans le cas d'un encodage UTF-8, enlever son dernier codepoint, non pas son dernier octet) ; puis M devient `M "[…]"`. Chaque médium, s'il dispose d'un taille limitée de messages, DOIT permettre au moins l'envoi du message `"[…]"`.
+    </txt>
+    <txt>
+      Un robot conforme au protocole IRC (IRDille Robot Conversationnel) DOIT supporter au moins tous les média indiqués comme obligatoires dans la table « Table des média » ci-dessous.
+    </txt>
+    <txt>
+      Un robot PEUT supporter un support de communication additionnel non défini dans cette SO6RFC. Dans ce cas, le robot DEVRAIT pouvoir indiquer la normalisation de ce médium, pour permettre à d'autres robots de l'utiliser et d'interagir facilement avec, permettant éventuellement à terme d'intégrer ce médium dans une nouvelle SO6RFC standard.
+    </txt>
+    <txt>
+      On note REQ l'invocation de la commande, et RES le résultat de cette commande, tels que définis dans la partie suivante.
+    </txt>
+    <table name="Table des média">
+      <header a="Médium" b="Obligatoire"/>
+      <row a="CHAÎNE" b="✔"/>
+      <row a="MP" b="✔"/>
+      <row a="XDCC" b="✘"/>
+      <row a="STREAM" b="✘"/>
+      <row a="TELEGRAM/MP" b="✘"/>
+    </table>
+
+    <part name="CHAÎNE : Communication traditionnelle collective">
+      <txt>
+        Le médium CHAÎNE correspond à l'envoi de messages sur une chaîne d'un serveur IRDille, à laquelle un robot IRDille est connecté. On note NIQUE le nick du robot sur le serveur IRDille. Pour rappel, conformément au protocole IRDille, les chaînes de caractères sont encodées avec UTF-8.
+      </txt>
+      <txt>
+        L'envoi de l'invocation de la commande s'effectue par l'envoi, de l'utilisateur sur une chaîne du serveur IRDille, d'une des chaînes de caractères suivantes :
+      </txt>
+      <ul>
+        <li>`"!" REQ`</li>
+        <li>`NIQUE [,.: \t]+ REQ`</li>
+      </ul>
+      <txt>
+        Toute autre chaîne de caractères ne DOIT PAS être considérée comme une commande par le robot et doit être ignorée à cet égard.
+      </txt>
+      <txt>
+        La réponse à une commande s'effectue par l'envoi, du robot sur une chaîne du serveur IRDille, de la chaîne de caractère suivante, si le résultat de la commande n'est pas vide :
+      </txt>
+      <ul>
+        <li>RES</li>
+      </ul>
+      <txt>
+        Si le résultat de la commande est vide, le robot ne DOIT PAS envoyer de message de réponse.
+      </txt>
+      <txt>
+        L'URL pour un robot pour ce médium s'écrit, notant HÔTE l'addresse du serveur IRDille, PORT son port, PASSE son mot de passe éventuel, CHAÎNE la chaîne, PARAM0 (respectivement VAL0) et PARAM1 (respectivement VAL1) des paramètres supplémentaires de connexion (respectivement leur valeur), les paramètres étant parmi `"nique"` pour le NIQUE et `"clef"` pour le mot de passe de la chaîne : `"irc+chaîne://" {":" URL(PASSE) "@"}? URL(HÔTE) {":" "+"? PORT}? "/" URL(CHAÎNE) {"?" PARAM0 "=" URL(VAL0) {"&amp;" PARAM1 "=" URL(VAL1)}? }?`.
+      </txt>
+      <txt>
+        La présence du `"+"` dans l'URL avant PORT signifie que la connexion IRDille doit s'effectuer par TLS. Le NIQUE DEVRAIT être présent dans l'URL. PARAM0 et PARAM1 DOIVENT être différents.
+      </txt>
+      <txt>
+        Exemple d'URL : `irc+chaîne://:diode280@irdil.le:+6697/#salon?nique=robot&amp;clef=led42`
+      </txt>
+    </part>
+
+    <part name="MP : Communication intime par canal de côté">
+      <txt>
+        Le médium MP correspond à l'envoi de messages par message privé sur un serveur IRDille, à laquelle un robot IRDille est connecté. Pour rappel, conformément au protocole IRDille, les chaînes de caractères sont encodées avec UTF-8.
+      </txt>
+      <txt>
+        L'envoi de l'invocation de la commande s'effectue par l'envoi, par message privé de l'utilisateur au robot, de la chaîne de caractères suivante :
+      </txt>
+      <ul>
+        <li>REQ</li>
+      </ul>
+      <txt>
+        Toute autre chaîne de caractères ne DOIT PAS être considérée comme une commande par le robot et doit être ignorée à cet égard.
+      </txt>
+      <txt>
+        La réponse à une commande s'effectue par l'envoi, par message privé du robot à l'utilisateur, de la chaîne de caractère suivante, si le résultat de la commande n'est pas vide :
+      </txt>
+      <ul>
+        <li>RES</li>
+      </ul>
+      <txt>
+        Si le résultat de la commande est vide, le robot ne DOIT PAS envoyer de message de réponse.
+      </txt>
+      <txt>
+        L'URL pour un robot pour ce médium s'écrit, notant HÔTE l'addresse du serveur IRDille, PORT son port, PASSE son mot de passe éventuel : `"irc+mp://" {":" URL(PASSE) "@"}? URL(HÔTE) {":" "+"? PORT}? "/" URL(NIQUE)`.
+      </txt>
+      <txt>
+        La présence du `"+"` dans l'URL avant PORT signifie que la connexion IRDille doit s'effectuer par TLS.
+      </txt>
+      <txt>
+        Exemple d'URL : `irc+mp://:diode280@irdil.le:+6697/robot`
+      </txt>
+    </part>
+
+    <part name="XDCC : Communication multiplexée synchrone très haut débit">
+      <txt>
+        Le médium XDCC correspond à l'envoi de messages sur un flux de communciation XDCC CHAT, négocié auparavant par un échange préalable sur le serveur IRDille. Conformément au protocole XDCC CHAT, l'envoi d'un message correspond à l'envoi de la chaîne de caractères du message, suivie des caractères retour charriot et nourriture de ligne. Les chaînes de caractères sont encodées avec UTF-8.
+      </txt>
+      <txt>
+        L'envoi de l'invocation de la commande s'effectue par l'envoi, sur le flux XDCC chat de l'utilisateur au robot, de la chaîne de caractères suivante :
+      </txt>
+      <ul>
+        <li>REQ</li>
+      </ul>
+      <txt>
+        Toute autre chaîne de caractères ne DOIT PAS être considérée comme une commande par le robot et doit être ignorée à cet égard.
+      </txt>
+      <txt>
+        La réponse à une commande s'effectue par l'envoi, sur le flux XDCC chat du robot à l'utilisateur, de la chaîne de caractère suivante :
+      </txt>
+      <ul>
+        <li>RES</li>
+      </ul>
+      <txt>
+        L'URL pour un robot pour ce médium s'écrit, notant HÔTE l'addresse du robot, PORT son port, PASSE son mot de passe éventuel : `"irc+xdcc://" {":" URL(PASSE) "@"}? URL(HÔTE) {":" "+"? PORT}? "/" URL(NIQUE)`.
+      </txt>
+      <txt>
+        La présence du `"+"` dans l'URL avant PORT signifie que la connexion IRDille doit s'effectuer par TLS.
+      </txt>
+      <txt>
+        Exemple d'URL : `irc+xdcc://:diode280@irdil.le:+6697/robot`
+      </txt>
+    </part>
+
+    <part name="STREAM : Communication multiplexée ordonnée générique">
+      <txt>
+        Le médium STREAM correspond à l'envoi de messages sur un protocole sous-jaçant générique d'envoi multiplexé ordonné de données arbitraires (et est en sens AgDuPr pour ce protocole sous-jaçant). Puisque le médium peut être défini sur plusieurs protocoles sous-jaçants, on notera STREAM/X le médium dont le protocole sous-jaçant est X. Un robot supporte donc un ensemble possiblement nul de média STREAM. En particulier, on définit STREAM/TCP/IP le médium définit sur un stream TCP/IP établi entre un utilisateur et un robot. Les mécanismes conduisant à l'établissement, le maintien et la terminaison du stream sous-jaçant sont non-spécifiés. L'envoi d'un « message » d'un client à un autre signifie l'envoi sur le stream sous-jaçant, du client à l'autre, de la chaîne de caractères encodée en UTF-8, notant M la chaîne de caractères correspondant au message : `M "\r"? "\n"`.
+      </txt>
+      <txt>
+        L'envoi de l'invocation de la commande s'effectue par l'envoi, sur le flux STREAM de l'utilisateur au robot, du message :
+      </txt>
+      <ul>
+        <li>REQ</li>
+      </ul>
+      <txt>
+        Toute autre message ne DOIT PAS être considéré comme une commande par le robot et doit être ignoré à cet égard.
+      </txt>
+      <txt>
+        La réponse à une commande s'effectue par l'envoi, sur le flux STREAM du robot à l'utilisateur, du message :
+      </txt>
+      <ul>
+        <li>RES</li>
+      </ul>
+      <txt>
+        L'URL pour un robot pour le médium STREAM/TCP/IP s'écrit, notant HÔTE l'addresse du robot, PORT son port : `"irc+stream://" URL(HÔTE) ":" "+"? PORT "/"`.
+      </txt>
+      <txt>
+        La présence du `"+"` dans l'URL avant PORT signifie que la connexion TCP/IP doit s'effectuer par TLS.
+      </txt>
+      <txt>
+        Exemple d'URL : `irc+stream+tcp+ip://irdil.le:+6697/`
+      </txt>
+      <txt>
+        L'URL pour un robot pour les autres média STREAM n'est pas définie, hormis que la partie protocole pour un média STREAM/X doit commencer par `"irc+stream+"`.
+      </txt>
+    </part>
+
+    <part name="TELEGRAM/MP : Communication intime sur le réseau Telegram">
+      <txt>
+        Le médium TELEGRAM/MP correspond à l'envoi de messages privés par le réseau Telegram, entre un utilisateur et un robot disposant d'un compte. Pour rappel, conformément aux normes du réseau Telegram, les chaînes de caractères sont encodées avec UTF-8.
+      </txt>
+      <txt>
+        L'envoi de l'invocation de la commande s'effectue par l'envoi, par message privé de l'utilisateur au robot, de la chaîne de caractères suivante :
+      </txt>
+      <ul>
+        <li>REQ</li>
+      </ul>
+      <txt>
+        Toute autre chaîne de caractères ne DOIT PAS être considérée comme une commande par le robot et doit être ignorée à cet égard.
+      </txt>
+      <txt>
+        La réponse à une commande s'effectue par l'envoi, par message privé du robot à l'utilisateur, en réponse au message correspondant à l'invocation de la commande, s'il existe encore au moment de la réponse, du message :
+      </txt>
+      <ul>
+        <li>RES</li>
+      </ul>
+      <txt>
+        L'URL pour un robot pour le médium TELEGRAM/MP s'écrit, notant NIQUE le nom de l'utilisateur sur Telegram : `"irc+telegram+mp:///" NIQUE`.
+      </txt>
+      <txt>
+        Exemple d'URL : `irc+telegram+mp:///sava`
+      </txt>
+    </part>
+  </part>
+
+  <part name="Commandes standard">
+    <part name="Introduction">
+      <txt>
+        Le protocole IRC (IRDille Robot Conversationnel) définit un ensemble homogène de commandes standard. Une commande est définie par un nom qui fait référence au mécanisme particulier correspondant.
+      </txt>
+      <txt>
+        Une « invocation d'un commande » est un protocole provoquant la demande d'un utilisateur de déclencher ce mécanisme. Une invocation possède une entrée constituée du nom de la commande et d'une liste éventuellement vide de paramètres. Le nom de la commande ne DOIT PAS dépendre de la casse. Une invocation peut donner lieu à la production d'une sortie sous forme de texte libre.
+      </txt>
+      <txt>
+        Notant formellement N le nombre d'élements de la liste de paramètres, notant C le nom de la commande et `P(0)`, ..., `P(N-1)` les paramètres, l'invocation est formellement définie par : `C I[0:N]{[ ]+ P(I)} [ ]*`
+      </txt>
+      <txt>
+        Dans les protocoles d'invocation définis dans cette SO6RFC, les invocations sont construites à partir d'une chaîne finie de caractères. Une opération appelée séparation de champs DOIT être appliquée à cette chaîne. Cette transformation consiste à convertir la chaîne d'entrée en une liste de chaînes non vide. Toute occurence non-vide d'un caractère espace (0x20) DOIT délimiter un champ. Si l'entrée contient des guillemets simples ou doubles, ou si l'entrée contient des barres obliques inverses, le comportement est indéfini.
+      </txt>
+      <txt>
+        Une fois la séparation de champs effectuée, le nom de la commande est définie comme le premier élément de la liste résultante, et les arguments sont définis comme le reste de la liste. Les arguments peuvent être une liste vide.
+      </txt>
+      <txt>
+        La sous-partie suivante énumère les commandes standard IRC (IRDille Robot Conversationnel), dont le support de certaines sont obligatoires. Dans le cas où le robot ne supporte pas une commande standard, il ne DOIT pas implémenter d'autre commande avec le même nom mais un comportement différent : autrement dit, le nom de chacun des commandes est réservé uniquement aux robots les implémentant. Chaque commande est décrite par un ensemble de parties dont certaines sont normatives.
+      </txt>
+
+      <ul>
+        <li>
+          La section Synopsis est normative et résume la syntaxe d'invocation de la commande en donnant la liste et l'ordre de ses arguments éventuels et s'ils sont facultatifs.
+        </li>
+        <li>
+          La section Description est normative et décrit précisément la commande, et notamment ses actions, sa réponse et quelless conditions à des erreurs.
+        </li>
+        <li>
+          La section Opérandes est normative et donne une description détaillée de chacun des arguments de la commande. Si cette section est omise, aucune description supplémentaire concernant les opérandes n'est indiquée.
+        </li>
+        <li>
+          La section Description étendue est normative et donne une description détaillée de la commande lorsque celle-ci est particulièrement compliquée. Si cette section est omise, la commande n'a pas de description étendue.
+        </li>
+        <li>
+          La section Conformité est normative et indique si la commande doit nécessairement être supportée par un robot, ou non.
+        </li>
+        <li>
+          La section Applications d'utilisation est informative et donne des conseils au programmeur ou à l'utilisateur sur la manière selon laquelle utiliser la commande. Si cette section est omise, aucun conseil particulier n'est donné pour cette commande.
+        </li>
+        <li>
+          La section Exemples est informative et donne un exemple de session de communication entre un robot et un utilisateur de ce robot, pour faciliter la compréhension de la commande. Chaque exemple est structuré comme suit : un message par ligne, « → » signifiant l'envoi d'un message de l'utilisateur, « ← » signifiant la réception d'un message du robot. Si cette section est omise, aucun exemple n'est donné pour cette commande.
+        </li>
+        <li>
+          La section Motivation est informative et explique pourquoi la commande est pertinente dans le cadre de ce standard. Si cette section est omise, aucune explication particulière à ce sujet n'est donnée pour cette commande.
+        </li>
+        <li>
+          La section Voir aussi est informative et indique des commandes en rapport avec la commande. Si cette section est omise, aucune commande particulière n'est indiquée.
+        </li>
+        <li>
+          La section Historique des changements est informative et indique l'évolution historique de la commande et les changements substantiels qui y ont été apportés. Si cette section est omise, la commande a été ajoutée dans la SO6RFC où elle apparait.
+        </li>
+      </ul>
+    </part>
+    <part name="tg, tgnon - faire taire les insolents">
+      <part name="Synopsis">
+        <ul>
+          <li>tg</li>
+          <li>tgnon</li>
+        </ul>
+      </part>
+      <part name="Description">
+        <txt>
+          tg et tgnon offrent deux mécanismes utiles à la gestion des abus : le premier permet de demander à un robot de ne plus envoyer de messages indésirables, l'autre est utile à l'annulation de cette demande. On pourra recontrer dans la suite de ce document « MI » pour message indésirable.
+        </txt>
+        <txt>
+          La définition de la notion de message indésirable, et la classification des messages entre messages indésirables et messages non indésirables sont subjectives aux utilisateurs et aux robots, aussi ce document ne présentera pas de critère précis et obligatoire concernant ces aspects. Cependant, la définition (implicite ou explicite) de la notion de message indésirable DOIT être la même pour toutes les demandes effectuées par des utilisateurs différents, à robot fixé, autrement dit les états TG d'un robot (voir ci-dessous) ne DOIVENT PAS dépendre de l'utilisateur déclenchant la commande. Une telle définition POURRAIT être « les messages indésirables sont exactement les messages spontanés ne correspondant pas à une sollicitation explicite » où la signification exacte de « sollicitation explicite » est définie commande l'envoi d'une commande. Dans tous les cas, la définition choisie DEVRAIT relever du bon sens, et ne pas être intentionnellement choisie de sorte à annuler l'effet du TG.
+        </txt>
+        <txt>
+          La table ci-dessous présente la liste des états TG d'un robot. L'état initial d'un robot est laissé libre à ce dernier. Chaque robot est libre d'avoir un état TG différent selon chaque médium ou non, et le robot PEUT modifier l'état TG de plusieurs média lors de la réception de la commande tg ou tgnon. La seule contrainte est que le robot DOIT être effectivement dans l'état modifié tel que décrit ci-dessous au moins pour le médium sur lequel la commande est reçue.
+        </txt>
+        <table name="Table des états">
+          <header a="Nom de l'état" b="Effet" c="État(s) suivant(s) potentiel(s)"/>
+          <row a="TG" b="Ne peut pas envoyer de MI" c="TGNON"/>
+          <row a="TGNON" b="Peut envoyer des MI" c="TG"/>
+        </table>
+        <txt>
+          La commande tg indique que le robot DOIT cesser d'envoyer des messages indésirables et rentrer dans l'état TG. Dans le cas où le robot est déjà dans l'état TG, le robot DOIT ne rien faire. Dans le cas contraire, il DOIT avant de passer dans l'état TG retourner un résultat non-vide (dit « commémoratif ») pour signifier à l'utilisateur que le TG a été pris en compte avec succès. Après cette commande, plus aucun MI ne peut être envoyé tant que l'état du robot est l'état TG.
+        </txt>
+        <txt>
+          La commande tgnon indique que le robot PEUT cesser de ne pas envoyer des messages indésirables et DOIT passer dans l'état TGNON. Dans le cas où l'appliqué est déjà dans l'état TGNON, l'appliqué est libre de réagir comme il le souhaite. Dans le cas contraire, avant de passer dans l'état TGNON, il DOIT retourner une résultat non-vide (dit « enchanté ») pour signifier au posteur que le TGNON a été pris en compte avec succès. Après cette commande, de nouveaux messages indésirables peuvent être envoyés tant que l'état de l'appliqué est l'état TGNON.
+        </txt>
+      </part>
+      <part name="Conformité">
+        <txt>
+          Cette commande DOIT être implémentée par les robots implémentant cette SO6RFC.
+        </txt>
+      </part>
+      <part name="Exemples">
+        <ul>
+          <li>
+            ← Il est 17 heures, c'est l'heure du pastis.
+          </li>
+          <li>
+            ← Il est 18 heures, c'est l'heure du rôti.
+          </li>
+          <li>
+            → `!tg`
+          </li>
+          <li>
+            ← Demande de TG prise en compte avec succès.
+          </li>
+          <li>
+            → `!tgnon`
+          </li>
+          <li>
+            ← Demande de TGNON prise en compte avec succès.
+          </li>
+          <li>
+            ← Il est 23 heures, c'est l'heure de la malle.
+          </li>
+        </ul>
+      </part>
+      <part name="Motivation">
+        <txt>
+          Certains utilisateurs ont ponctuellement besoin de se servir de IRDille comme médium pour l'élaboration d'une discussion saine et constructive. Dans ces rares cas, des messages indésirables polluant la discussion et distrayant les participants n'aident pas à maintenir ce contexte de paix et d'harmonie.
+        </txt>
+      </part>
+      <part name="Historique des changements">
+        <txt>
+          Les commandes tg et tgnon ont été introduites dans la SO6RFC3.
+        </txt>
+        <txt>
+          Cette SO6RFC supprime certaines fonctionnalités et exigences jugées obsolètes.
+        </txt>
+      </part>
+    </part>
+    <part name="help - alaid armans">
+      <part name="Synopsis">
+        <ul>
+          <li>help [commande]</li>
+        </ul>
+      </part>
+      <part name="Description">
+        <txt>
+          La commande help permet d'avoir une description détaillée, lisible par un utilisateur humain, soit d'un robot dans son ensemble, soit d'une commande en particulier offerte par ce robot.
+        </txt>
+        <txt>
+          Si aucune commande n'est spécifiée, la commande doit renvoyer une description dans un format non spécifié du robot dans son ensemble.
+        </txt>
+        <txt>
+          Sinon, si la commande spécifiée n'est pas supportée par le robot, le robot doit renvoyer une erreur, et la réponse suivante : « erreur : help : commande inconnue ».
+        </txt>
+        <txt>
+          Sinon, le robot doit renvoyer une description dans un format non spécifié de la commande indiquée. Cette description DOIT inclure un synopsis pour la commande, indiquant tous ses arguments optionnels et facultatifs. Cette description DEVRAIT inclure une courte explication de la commande.
+        </txt>
+      </part>
+      <part name="Conformité">
+        <txt>
+          Cette commande DOIT être implémentée par les robots implémentant cette SO6RFC.
+        </txt>
+      </part>
+      <part name="Exemples">
+        <ul>
+          <li>
+            → `!help`
+          </li>
+          <li>
+            ← Je suis Armand, le quatrième navire de la classe Falco. Version 54.
+          </li>
+          <li>
+            → `!help help`
+          </li>
+          <li>
+            ← help [commande] : lire le manuel.
+          </li>
+        </ul>
+      </part>
+      <part name="Motivation">
+        <txt>
+          Dans un contexte où de nombreuses commandes sont ajoutées régulièrement aux robots par leurs créateurs, il devient difficile pour les utilisateurs de comprendre comment utiliser ces nouvelles fonctionnalités qui sont pourtant ô combien utiles. La commande help permet de résoudre ce problème en proposant une aide détaillée de toutes les commandes du robot.
+        </txt>
+      </part>
+      <part name="Voir aussi">
+        <ul>
+          <li>cmdlist</li>
+        </ul>
+      </part>
+    </part>
+    <part name="cmdlist - lister les commandes disponibles">
+      <part name="Synopsis">
+        <ul>
+          <li>cmdlist</li>
+        </ul>
+      </part>
+      <part name="Description">
+        <txt>
+          La commande cmdlist permet d'obtenir une liste de toutes les commandes supportées par un robot. Le résultat de cette commande DOIT être consommable par un robot, en particulier il DOIT suivre un format précis défini ci-après.
+        </txt>
+        <txt>
+          Le résultat de cette commande DOIT être une liste de noms de commandes séparée par des caractères espace.
+        </txt>
+      </part>
+      <part name="Conformité">
+        <txt>
+          Cette commande DOIT être implémentée par les robots implémentant cette SO6RFC.
+        </txt>
+      </part>
+      <part name="Exemples">
+        <ul>
+          <li>
+            → `!cmdlist`
+          </li>
+          <li>
+            ← tg tgnon help/h/nady cmdlist meteo/m
+          </li>
+        </ul>
+      </part>
+      <part name="Motivation">
+        <txt>
+          Dans un contexte où de nombreuses commandes sont ajoutées régulièrement aux robots par leurs créateurs, il devient difficile d'avoir une vue d'ensemble de toutes les fonctionnalités apportées par un bot. La commande cmdlist permet de résoudre ce problème en donnant une vue très synthétique de toutes les commandes du robot.
+        </txt>
+      </part>
+      <part name="Voir aussi">
+        <ul>
+          <li>help</li>
+        </ul>
+      </part>
+    </part>
+    <part name="tag-exec - exécuter une commande avec une étiquette">
+      <part name="Synopsis">
+        <ul>
+          <li>`tag-exec &lt;étiquette&gt; &lt;commande&gt; &lt;[arguments]&gt;`</li>
+        </ul>
+      </part>
+      <part name="Description">
+        <txt>
+          La commande tag-exec permet de faire exécuter une commande en rajoutant en faisant préfixer la réponse de l'invocation de la commande par une étiquette.
+        </txt>
+        <txt>
+          Si l'étiquette n'est pas au format spécifié dans la section Opérandes, le robot doit renvoyer une erreur, et la réponse suivante : « erreur : tag-exec : étiquette invalide ».
+        </txt>
+        <txt>
+          Sinon, le robot effectue le traitement de l'invocation de la commande définie par la commande spécifiée et les arguments spécifiés. Que le traitement conduise au renvoi d'une erreur ou non, notant E l'étiquette et RES le résultat de l'invocation de la commande, le robot doit renvoyer exactement `E " " RES`.
+        </txt>
+      </part>
+      <part name="Opérandes">
+        <ul>
+          <li>étiquette doit être au format [abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789]+</li>
+        </ul>
+      </part>
+      <part name="Conformité">
+        <txt>
+          Cette commande DEVRAIT être implémentée par les robots implémentant cette SO6RFC.
+        </txt>
+      </part>
+      <part name="Exemples">
+        <ul>
+          <li>
+            → `!tag-exec poiiiiiiii help cmdlist`
+          </li>
+          <li>
+            ← `poiiiiiiii cmdlist : CoMmanDe LISTe`
+          </li>
+          <li>
+            → `!tag-exec oups unicode`
+          </li>
+          <li>
+            ← `oups erreur : commande inconnue`
+          </li>
+        </ul>
+      </part>
+      <part name="Motivation">
+        <txt>
+          Sur certains média, dans le cadre de plusieurs invocations en parallèle de commandes à long temps de traitement, il peut être difficile d'associer l'invocation à sa réponse. Utiliser tag-exec permet d'ajouter un tag facilitant l'association de la réponse à son invocation initiale.
+        </txt>
+      </part>
+    </part>
+    <part name="endpoints - lister les URL du robot">
+      <part name="Synopsis">
+        <ul>
+          <li>endpoints</li>
+        </ul>
+      </part>
+      <part name="Description">
+        <txt>
+          La commande endpoints permet de lister des URLs IRC auxquelles le robot est joignable.
+        </txt>
+        <txt>
+          Les URLs DOIVENT être renvoyées sous la forme d'une liste d'URLs séparée par des espaces. Ni l'ordre de cette liste, ni la cohérence de cet ordre ne sont spécifiés.
+        </txt>
+      </part>
+      <part name="Conformité">
+        <txt>
+          Cette commande DEVRAIT être implémentée par les robots implémentant cette SO6RFC.
+        </txt>
+      </part>
+      <part name="Exemples">
+        <ul>
+          <li>
+            → `!endpoints`
+          </li>
+          <li>
+            ← `irc+chaîne://:diode280@irdil.le:+6697/#salon?nique=robot irc+stream+tcp+ip://irdil.le:+6697/`
+          </li>
+        </ul>
+      </part>
+      <part name="Motivation">
+        <txt>
+          Cette commande au format standardisé permet aux applications interactives et non-interactives d'interagir avec le robot par le médium de leur souhait, plutôt que toujours le premier médium où le robot a été rencontré.
+        </txt>
+      </part>
+    </part>
+  </part>
+
+  <part name="Considérations concernant la sécurité">
+    <txt>
+      Il n'y a pas de problème de sécurité connu pour ce protocole.
+    </txt>
+  </part>
+</document>

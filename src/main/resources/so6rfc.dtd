@@ -12,8 +12,9 @@
 <!ATTLIST document
 author CDATA #REQUIRED
 title CDATA #REQUIRED
-status (Protocole standard) #REQUIRED
+status (Protocole Standard) #REQUIRED
 id NUMBER #REQUIRED>
+deprecated NUMBER>
 <!ATTLIST part
 name CDATA #REQUIRED
 compact CDATA #IMPLIED>

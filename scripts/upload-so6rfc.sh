@@ -1,6 +1,8 @@
 #!/bin/bash
-set -ev
-git diff --name-only $TRAVIS_COMMIT_RANGE | grep 'src/main/resources/so6rfc[0-9]*\.xml' | grep -o '[^/]*$' | while read in
+set -eux
+COMMIT=$TRAVIS_COMMIT_RANGE
+git diff -s $COMMIT || COMMIT=HEAD^
+git diff --name-only $COMMIT | grep 'src/main/resources/so6rfc[0-9]*\.xml' | grep -o '[^/]*$' | while read in
 do
     echo Compiling file $in...
     java -jar target/so6rfc-1.0.0-jar-with-dependencies.jar $in > output.txt

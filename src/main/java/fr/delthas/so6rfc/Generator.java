@@ -19,6 +19,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Generator {
@@ -56,13 +57,33 @@ public class Generator {
   }
 
   private static String clean(String string) {
-    String result = string;
-    result = patternClosingGuillemet.matcher(result).replaceAll("$1\u00A0»");
-    result = patternOpeningGuillemet.matcher(result).replaceAll("«\u00A0$1");
-    result = patternBeforeThinUnbreakableSpace.matcher(result).replaceAll("\u202F$1");
-    result = patternBeforeUnbreakableSpace.matcher(result).replaceAll("\u00A0$1");
-    result = patternAfterUnbreakableSpace.matcher(result).replaceAll("$1\u00A0");
-    return result;
+    StringBuilder sb = new StringBuilder();
+    for(int start = 0; start < string.length(); ) {
+      int end = string.indexOf('`', start);
+      boolean stop = false;
+      if(end == -1) {
+        end = string.length();
+        stop = true;
+      }
+      String process = string.substring(start, end);
+      process = patternClosingGuillemet.matcher(process).replaceAll("$1\u00A0»");
+      process = patternOpeningGuillemet.matcher(process).replaceAll("«\u00A0$1");
+      process = patternBeforeThinUnbreakableSpace.matcher(process).replaceAll("\u202F$1");
+      process = patternBeforeUnbreakableSpace.matcher(process).replaceAll("\u00A0$1");
+      process = patternAfterUnbreakableSpace.matcher(process).replaceAll("$1\u00A0");
+      sb.append(process);
+      if(stop) {
+        break;
+      }
+      start = end + 1;
+      end = string.indexOf('`', start);
+      if(end == -1) {
+        throw new IllegalArgumentException("unmatched escape character");
+      }
+      sb.append(string, start, end);
+      start = end + 1;
+    }
+    return sb.toString();
   }
 
   private static String getAttribute(StartElement start, String key) {
@@ -144,6 +165,11 @@ public class Generator {
               String author = getAttribute(start, "author");
               appendNTimes(output, ' ', LINE_WIDTH - author.length() - TEAM_NAME.length());
               output.append(author).append('\n');
+              String deprecates = getAttribute(start, "deprecates");
+              if(deprecates != null && !deprecates.isEmpty()) {
+                String deprecated = Arrays.stream(deprecates.split(", *")).map(s -> "SO6RFC" + s).collect(Collectors.joining(", "));
+                output.append("Rend obsolète : ").append(deprecated).append('\n');
+              }
               String status = getAttribute(start, "status");
               output.append("Statut : ").append(status);
               String dateString = LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("d MMM uuuu", Locale.FRENCH));
